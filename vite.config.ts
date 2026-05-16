@@ -13,13 +13,8 @@ export default defineConfig(async () => ({
   server: {
     host: host || false,
 
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1421,
-        }
-      : undefined,
+    port: 1420,
+  strictPort: true,
 
     watch: {
       ignored: ["**/src-tauri/**"],

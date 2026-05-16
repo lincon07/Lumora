@@ -1,26 +1,6 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
-import { Button } from "./components/ui/button";
-import Layout from "./app/layout";
-
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  return (
-    <main className="container">
-    <Layout>
-      sa
-    </Layout>
-    </main>
-  );
+// This file is no longer used as the main component.
+// The app is now handled by React Router via src/router.tsx
+// This file is kept for compatibility but can be removed.
+export default function App() {
+  return null
 }
-
-export default App;

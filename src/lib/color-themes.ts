@@ -2,9 +2,82 @@ export interface ColorTheme {
   id: string
   name: string
   description: string
+  isCustom?: boolean
   preview: { primary: string; secondary: string; accent: string; background: string }
   light: Record<string, string>
   dark: Record<string, string>
+}
+
+/** The editable color keys users can customize in the theme creator */
+export const editableColorKeys = [
+  { key: "--primary", label: "Primary" },
+  { key: "--primary-foreground", label: "Primary Text" },
+  { key: "--secondary", label: "Secondary" },
+  { key: "--secondary-foreground", label: "Secondary Text" },
+  { key: "--accent", label: "Accent" },
+  { key: "--accent-foreground", label: "Accent Text" },
+  { key: "--background", label: "Background" },
+  { key: "--foreground", label: "Foreground" },
+  { key: "--card", label: "Card" },
+  { key: "--card-foreground", label: "Card Text" },
+  { key: "--muted", label: "Muted" },
+  { key: "--muted-foreground", label: "Muted Text" },
+  { key: "--border", label: "Border" },
+  { key: "--input", label: "Input" },
+  { key: "--ring", label: "Ring" },
+  { key: "--destructive", label: "Destructive" },
+  { key: "--destructive-foreground", label: "Destructive Text" },
+] as const
+
+/** Available font options for custom themes */
+export const fontOptions = [
+  { value: "Open Sans, sans-serif", label: "Open Sans" },
+  { value: "'Geist', sans-serif", label: "Geist" },
+  { value: "Inter, sans-serif", label: "Inter" },
+  { value: "'Poppins', sans-serif", label: "Poppins" },
+  { value: "'DM Sans', sans-serif", label: "DM Sans" },
+  { value: "system-ui, sans-serif", label: "System" },
+  { value: "Georgia, serif", label: "Georgia" },
+  { value: "'Libre Baskerville', serif", label: "Libre Baskerville" },
+  { value: "Menlo, monospace", label: "Menlo (Mono)" },
+] as const
+
+/** Available radius options */
+export const radiusOptions = [
+  { value: "0rem", label: "None" },
+  { value: "0.25rem", label: "Small" },
+  { value: "0.5rem", label: "Medium" },
+  { value: "0.75rem", label: "Large" },
+  { value: "1rem", label: "XL" },
+  { value: "1.3rem", label: "2XL" },
+] as const
+
+const CUSTOM_THEMES_KEY = "lumora-custom-themes"
+
+export function loadCustomThemes(): ColorTheme[] {
+  try {
+    const stored = localStorage.getItem(CUSTOM_THEMES_KEY)
+    if (!stored) return []
+    return JSON.parse(stored) as ColorTheme[]
+  } catch {
+    return []
+  }
+}
+
+export function saveCustomThemes(themes: ColorTheme[]) {
+  localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(themes))
+}
+
+export function createBlankCustomTheme(basedOn: ColorTheme): ColorTheme {
+  return {
+    id: `custom-${Date.now()}`,
+    name: "My Custom Theme",
+    description: "A custom theme",
+    isCustom: true,
+    preview: { ...basedOn.preview },
+    light: { ...basedOn.light },
+    dark: { ...basedOn.dark },
+  }
 }
 
 export const colorThemes: ColorTheme[] = [

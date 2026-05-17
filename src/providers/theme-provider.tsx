@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
-import { colorThemes, type ColorTheme } from "@/lib/color-themes"
+import {
+  colorThemes,
+  loadCustomThemes,
+  saveCustomThemes,
+  type ColorTheme,
+} from "@/lib/color-themes"
 
 type Theme = "dark" | "light" | "system"
 
@@ -15,6 +20,11 @@ type ThemeProviderState = {
   setTheme: (theme: Theme) => void
   colorTheme: ColorTheme
   setColorTheme: (themeId: string) => void
+  customThemes: ColorTheme[]
+  addCustomTheme: (theme: ColorTheme) => void
+  updateCustomTheme: (theme: ColorTheme) => void
+  deleteCustomTheme: (themeId: string) => void
+  allThemes: ColorTheme[]
 }
 
 const initialState: ThemeProviderState = {
@@ -22,6 +32,11 @@ const initialState: ThemeProviderState = {
   setTheme: () => null,
   colorTheme: colorThemes[0],
   setColorTheme: () => null,
+  customThemes: [],
+  addCustomTheme: () => null,
+  updateCustomTheme: () => null,
+  deleteCustomTheme: () => null,
+  allThemes: colorThemes,
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
@@ -54,9 +69,16 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
 
+  const [customThemes, setCustomThemesState] = useState<ColorTheme[]>(() =>
+    loadCustomThemes()
+  )
+
+  const allThemes = [...colorThemes, ...customThemes]
+
   const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
     const savedId = localStorage.getItem(colorThemeStorageKey)
-    return colorThemes.find((t) => t.id === savedId) ?? colorThemes[0]
+    const all = [...colorThemes, ...loadCustomThemes()]
+    return all.find((t) => t.id === savedId) ?? colorThemes[0]
   })
 
   // Apply dark/light class
@@ -83,13 +105,55 @@ export function ThemeProvider({
 
   const setColorTheme = useCallback(
     (themeId: string) => {
-      const found = colorThemes.find((t) => t.id === themeId)
+      const all = [...colorThemes, ...customThemes]
+      const found = all.find((t) => t.id === themeId)
       if (found) {
         localStorage.setItem(colorThemeStorageKey, themeId)
         setColorThemeState(found)
       }
     },
-    [colorThemeStorageKey]
+    [colorThemeStorageKey, customThemes]
+  )
+
+  const addCustomTheme = useCallback((newTheme: ColorTheme) => {
+    setCustomThemesState((prev) => {
+      const updated = [...prev, newTheme]
+      saveCustomThemes(updated)
+      return updated
+    })
+  }, [])
+
+  const updateCustomTheme = useCallback(
+    (updatedTheme: ColorTheme) => {
+      setCustomThemesState((prev) => {
+        const updated = prev.map((t) =>
+          t.id === updatedTheme.id ? updatedTheme : t
+        )
+        saveCustomThemes(updated)
+        return updated
+      })
+      // If the currently active theme is being updated, reapply it
+      if (colorTheme.id === updatedTheme.id) {
+        setColorThemeState(updatedTheme)
+      }
+    },
+    [colorTheme.id]
+  )
+
+  const deleteCustomTheme = useCallback(
+    (themeId: string) => {
+      setCustomThemesState((prev) => {
+        const updated = prev.filter((t) => t.id !== themeId)
+        saveCustomThemes(updated)
+        return updated
+      })
+      // If deleting the active theme, switch back to default
+      if (colorTheme.id === themeId) {
+        localStorage.setItem(colorThemeStorageKey, "default")
+        setColorThemeState(colorThemes[0])
+      }
+    },
+    [colorTheme.id, colorThemeStorageKey]
   )
 
   const value = {
@@ -97,6 +161,11 @@ export function ThemeProvider({
     setTheme,
     colorTheme,
     setColorTheme,
+    customThemes,
+    addCustomTheme,
+    updateCustomTheme,
+    deleteCustomTheme,
+    allThemes,
   }
 
   return (

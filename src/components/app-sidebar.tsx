@@ -9,12 +9,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-
-import {
   CalendarDays,
   LayoutDashboard,
   Settings,
@@ -49,35 +43,28 @@ export function AppSidebar() {
       </SidebarHeader>
 
       {/* Navigation Icons */}
-      <SidebarContent className="flex flex-col items-center gap-1 py-4">
-        <SidebarMenu className="gap-1">
+      <SidebarContent className="py-4">
+        <SidebarMenu className="gap-1 items-center">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
-              <SidebarMenuItem key={item.title}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      className={`
-                        flex size-11 items-center justify-center rounded-xl p-0
-                        transition-all
-                        ${isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                        }
-                      `}
-                    >
-                      <NavLink to={item.href}>
-                        <item.icon className="!size-5" />
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8}>
-                    {item.title}
-                  </TooltipContent>
-                </Tooltip>
+              <SidebarMenuItem key={item.title} className="w-full flex justify-center">
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  className={`
+                    flex size-11 items-center justify-center rounded-xl p-0
+                    transition-all mx-auto
+                    ${isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }
+                  `}
+                >
+                  <NavLink to={item.href}>
+                    <item.icon className="!size-5" />
+                  </NavLink>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             )
           })}
@@ -86,16 +73,9 @@ export function AppSidebar() {
 
       {/* Footer - User */}
       <SidebarFooter className="flex items-center justify-center border-t border-border/50 py-4">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20">
-              <User2 className="size-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            Poncho (Admin)
-          </TooltipContent>
-        </Tooltip>
+        <button className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20">
+          <User2 className="size-5" />
+        </button>
       </SidebarFooter>
     </Sidebar>
   )

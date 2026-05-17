@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { CalendarProvider, useCalendar } from "@/providers/calendar-provider"
-import { CalendarSidebar } from "@/components/calendar/calendar-sidebar"
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar"
+import { CalendarFilterBar } from "@/components/calendar/calendar-filter-bar"
 import { MonthView } from "@/components/calendar/month-view"
 import { WeekView } from "@/components/calendar/week-view"
 import { YearView } from "@/components/calendar/year-view"
@@ -39,10 +39,10 @@ function CalendarInner() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <CalendarSidebar />
+    <div className="flex h-full flex-col overflow-hidden">
+      <CalendarToolbar onNewEvent={handleNewEvent} />
+      <CalendarFilterBar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <CalendarToolbar onNewEvent={handleNewEvent} />
         {view === "month" && (
           <MonthView onEventClick={handleEventClick} onDayClick={handleDayClick} />
         )}

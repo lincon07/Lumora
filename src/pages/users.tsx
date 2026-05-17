@@ -1,5 +1,6 @@
 import { useState, useRef } from "react"
 import { CalendarProvider, useCalendar } from "@/providers/calendar-provider"
+import { useAuth } from "@/providers/auth-provider"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { QRCodeSVG } from "qrcode.react"
 import {
   Plus,
   Pencil,
@@ -40,9 +42,13 @@ import {
   X,
   Check,
   Palette,
+  Smartphone,
+  QrCode,
+  Link,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { FamilyMember } from "@/lib/calendar-types"
+import { ALL_PHONE_PERMISSIONS, DEFAULT_PHONE_PERMISSIONS, type PhonePermission } from "@/lib/auth-types"
 
 const ROLE_OPTIONS = ["Child", "Teen", "Adult", "Senior"]
 
@@ -69,6 +75,14 @@ const COLOR_PRESETS = [
 
 function UsersInner() {
   const { members, addMember, updateMember, deleteMember } = useCalendar()
+  const {
+    setupState,
+    pendingPairing,
+    createPairingCode,
+    cancelPairing,
+    removePairing,
+    getPairingsForMember,
+  } = useAuth()
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
@@ -84,6 +98,11 @@ function UsersInner() {
   const [editName, setEditName] = useState("")
   const [editRole, setEditRole] = useState("")
   const [editColor, setEditColor] = useState("")
+
+  // Phone pairing state
+  const [showPairingSheet, setShowPairingSheet] = useState(false)
+  const [pairingMemberId, setPairingMemberId] = useState<string | null>(null)
+  const [selectedPermissions, setSelectedPermissions] = useState<PhonePermission[]>(DEFAULT_PHONE_PERMISSIONS)
 
   // Swipe state
   const swipeRef = useRef<{ [key: string]: { startX: number; currentX: number } }>({})
@@ -142,6 +161,31 @@ function UsersInner() {
     toast.success(`Removed ${deleteConfirm.name}`)
     setDeleteConfirm(null)
     setSwipedId(null)
+  }
+
+  // Phone pairing functions
+  function openPairingForMember(memberId: string) {
+    setPairingMemberId(memberId)
+    setSelectedPermissions(DEFAULT_PHONE_PERMISSIONS)
+    setShowPairingSheet(true)
+  }
+
+  function handleGenerateQR() {
+    if (pairingMemberId) {
+      createPairingCode(pairingMemberId, selectedPermissions)
+    }
+  }
+
+  function togglePermission(perm: PhonePermission) {
+    setSelectedPermissions((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]
+    )
+  }
+
+  function closePairingSheet() {
+    setShowPairingSheet(false)
+    cancelPairing()
+    setPairingMemberId(null)
   }
 
   // Touch swipe handlers
@@ -312,8 +356,28 @@ function UsersInner() {
                                 style={{ backgroundColor: member.color }}
                               />
                             </div>
+                            {/* Linked phones indicator */}
+                            {(() => {
+                              const pairings = getPairingsForMember(member.id)
+                              if (pairings.length === 0) return null
+                              return (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Smartphone className="size-3 text-green-500" />
+                                  <span className="text-[10px] text-green-500">
+                                    {pairings.length} phone{pairings.length > 1 ? "s" : ""} linked
+                                  </span>
+                                </div>
+                              )
+                            })()}
                           </div>
                           <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => openPairingForMember(member.id)}
+                              className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Link phone"
+                            >
+                              <Smartphone className="size-4" />
+                            </button>
                             <button
                               onClick={() => startEditing(member)}
                               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -440,7 +504,7 @@ function UsersInner() {
             </div>
           </div>
 
-          <SheetFooter>
+          <SheetFooter className="flex-col gap-2">
             <Button
               className="w-full"
               disabled={!newName.trim()}
@@ -449,6 +513,9 @@ function UsersInner() {
               <Plus className="size-4 mr-2" />
               Add {newName || "Member"}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              You can link a phone to this member after adding them.
+            </p>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -470,6 +537,156 @@ function UsersInner() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Phone Pairing Sheet */}
+      <Sheet open={showPairingSheet} onOpenChange={(open) => !open && closePairingSheet()}>
+        <SheetContent side="right" className="w-96">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <QrCode className="size-5" />
+              Link Phone
+            </SheetTitle>
+            <SheetDescription>
+              Generate a QR code for this family member to scan with their phone.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex flex-col gap-5 py-4">
+            {/* Show selected member */}
+            {pairingMemberId && (
+              <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                {(() => {
+                  const member = members.find((m) => m.id === pairingMemberId)
+                  if (!member) return null
+                  return (
+                    <>
+                      <Avatar className="size-12">
+                        <AvatarImage src={member.avatar} alt={member.name} />
+                        <AvatarFallback style={{ backgroundColor: member.color + "30", color: member.color }}>
+                          {member.name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{member.name}</p>
+                        <p className="text-xs text-muted-foreground">{member.role}</p>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+
+            {pendingPairing && pairingMemberId === pendingPairing.memberId ? (
+              <>
+                {/* QR Code display */}
+                <div className="flex justify-center rounded-2xl bg-white p-4">
+                  <QRCodeSVG
+                    value={JSON.stringify({
+                      type: "lumora-pairing",
+                      code: pendingPairing.code,
+                      deviceName: setupState.device?.name || "Lumora Hub",
+                    })}
+                    size={180}
+                    level="M"
+                  />
+                </div>
+
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Pairing code</p>
+                  <p className="font-mono text-lg font-bold tracking-wider">{pendingPairing.code}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Expires in 10 minutes</p>
+                </div>
+
+                <Button variant="outline" className="w-full" onClick={closePairingSheet}>
+                  <X className="size-4 mr-2" /> Done
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Existing pairings for this member */}
+                {pairingMemberId && (() => {
+                  const existingPairings = getPairingsForMember(pairingMemberId)
+                  if (existingPairings.length === 0) return null
+                  return (
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Smartphone className="size-4" />
+                        Linked Phones ({existingPairings.length})
+                      </label>
+                      <div className="flex flex-col gap-1.5 max-h-32 overflow-auto">
+                        {existingPairings.map((pairing) => (
+                          <div
+                            key={pairing.id}
+                            className="flex items-center justify-between rounded-lg border border-border bg-card p-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Smartphone className="size-4 text-green-500" />
+                              <div>
+                                <p className="text-xs font-medium">{pairing.deviceName}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Linked {new Date(pairing.pairedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                removePairing(pairing.id)
+                                toast.success("Phone unlinked")
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Permissions selection */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Permissions for new phone</label>
+                  <div className="grid gap-1.5 max-h-40 overflow-auto">
+                    {ALL_PHONE_PERMISSIONS.map((perm) => (
+                      <button
+                        key={perm.value}
+                        onClick={() => togglePermission(perm.value)}
+                        className={`flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition-all ${
+                          selectedPermissions.includes(perm.value)
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:border-muted-foreground/50"
+                        }`}
+                      >
+                        <div
+                          className={`flex size-4 items-center justify-center rounded border ${
+                            selectedPermissions.includes(perm.value)
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border"
+                          }`}
+                        >
+                          {selectedPermissions.includes(perm.value) && <Check className="size-2.5" />}
+                        </div>
+                        {perm.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {!(pendingPairing && pairingMemberId === pendingPairing.memberId) && (
+            <SheetFooter>
+              <Button className="w-full gap-2" onClick={handleGenerateQR}>
+                <QrCode className="size-4" /> Generate QR Code
+              </Button>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

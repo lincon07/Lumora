@@ -1,6 +1,6 @@
 import { useCalendar } from "@/providers/calendar-provider"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, CalendarDays } from "lucide-react"
 import type { CalendarView } from "@/lib/calendar-types"
 
 const MONTHS = [
@@ -38,12 +38,21 @@ export function CalendarToolbar({ onNewEvent }: CalendarToolbarProps) {
     { value: "year", label: "Year" },
   ]
 
+  const today = new Date()
+  const dayOfMonth = today.getDate()
+
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3">
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="sm" onClick={goToday}>
-          Today
-        </Button>
+        {/* Today button with calendar icon showing current day number */}
+        <button
+          onClick={goToday}
+          className="relative flex size-9 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-muted"
+          aria-label="Go to today"
+        >
+          <CalendarDays className="size-5" />
+          <span className="absolute bottom-0.5 text-[8px] font-bold leading-none">{dayOfMonth}</span>
+        </button>
         <div className="flex items-center gap-0.5">
           <Button variant="ghost" size="icon-sm" onClick={goPrev} aria-label="Previous">
             <ChevronLeft className="size-4" />

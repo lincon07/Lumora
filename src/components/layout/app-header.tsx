@@ -1,6 +1,4 @@
 import { useLocation } from "react-router-dom"
-import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { useTheme } from "@/providers/theme-provider"
@@ -43,8 +41,6 @@ export function AppHeader() {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border/50 px-6">
       <div className="flex items-center gap-3">
-        <SidebarTrigger className="size-9 text-muted-foreground hover:text-foreground" />
-        <Separator orientation="vertical" className="mx-1 h-6" />
         <Icon className="size-5 text-muted-foreground" />
         <h1 className="text-lg font-semibold text-foreground">{meta.title}</h1>
       </div>

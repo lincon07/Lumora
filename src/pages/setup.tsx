@@ -511,6 +511,7 @@ function PinStep({
     } else {
       setPin(newPin)
     }
+    setError("")
 
     // Auto-focus next input
     if (value && index < 3) {
@@ -521,18 +522,26 @@ function PinStep({
     // Auto-submit when all filled
     if (index === 3 && value) {
       if (!isConfirm) {
-        setTimeout(() => setStage("confirm"), 150)
+        setTimeout(() => {
+          setStage("confirm")
+          setTimeout(() => {
+            document.getElementById("confirm-pin-0")?.focus()
+          }, 50)
+        }, 150)
       } else {
         const pinStr = pin.join("")
         const confirmStr = [...newPin].join("")
         if (pinStr === confirmStr) {
           onSubmit(pinStr)
         } else {
-          setError("PINs do not match")
-          setConfirmPin(["", "", "", ""])
+          setError("PINs do not match. Try again.")
+          // Clear only the last digit and keep focus on 4th input
+          const resetConfirm = [...newPin]
+          resetConfirm[3] = ""
+          setConfirmPin(resetConfirm)
           setTimeout(() => {
-            document.getElementById("confirm-pin-0")?.focus()
-          }, 100)
+            document.getElementById("confirm-pin-3")?.focus()
+          }, 50)
         }
       }
     }

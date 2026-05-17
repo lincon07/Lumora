@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react"
 import type {
   FamilyMember,
   CalendarGroup,
@@ -10,6 +10,49 @@ import {
   defaultCalendars,
   defaultEvents,
 } from "@/lib/calendar-data"
+
+/**
+ * Expands a recurring event into concrete occurrences within [rangeStart, rangeEnd].
+ * Returns virtual copies with adjusted start/end dates.
+ */
+function expandRecurringEvent(
+  evt: CalendarEvent,
+  rangeStart: Date,
+  rangeEnd: Date
+): CalendarEvent[] {
+  if (evt.recurrence === "none") return [evt]
+
+  const results: CalendarEvent[] = []
+  const origStart = new Date(evt.start)
+  const origEnd = new Date(evt.end)
+  const duration = origEnd.getTime() - origStart.getTime()
+
+  // Advance cursor until it passes rangeEnd or max 500 iterations
+  let cursor = new Date(origStart)
+  let i = 0
+  const MAX = 500
+
+  while (cursor <= rangeEnd && i < MAX) {
+    i++
+    if (cursor >= rangeStart) {
+      results.push({
+        ...evt,
+        id: `${evt.id}_occ_${i}`,
+        start: cursor.toISOString(),
+        end: new Date(cursor.getTime() + duration).toISOString(),
+      })
+    }
+    // Advance by recurrence interval
+    const next = new Date(cursor)
+    if (evt.recurrence === "daily") next.setDate(next.getDate() + 1)
+    else if (evt.recurrence === "weekly") next.setDate(next.getDate() + 7)
+    else if (evt.recurrence === "monthly") next.setMonth(next.getMonth() + 1)
+    else if (evt.recurrence === "yearly") next.setFullYear(next.getFullYear() + 1)
+    cursor = next
+  }
+
+  return results
+}
 
 interface CalendarStore {
   // Data
@@ -44,6 +87,7 @@ interface CalendarStore {
 
   // Computed
   visibleEvents: CalendarEvent[]
+  expandedVisibleEvents: CalendarEvent[]
 }
 
 const CalendarContext = createContext<CalendarStore | null>(null)
@@ -145,6 +189,16 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
       (e.memberIds.length === 0 || e.memberIds.some((mid) => memberSet.has(mid)))
   )
 
+  // Expanded events: recurring events are expanded into individual occurrences
+  // over a ±2 year window so all views can query by date range directly.
+  const expandedVisibleEvents = useMemo(() => {
+    const rangeStart = new Date()
+    rangeStart.setFullYear(rangeStart.getFullYear() - 2)
+    const rangeEnd = new Date()
+    rangeEnd.setFullYear(rangeEnd.getFullYear() + 2)
+    return visibleEvents.flatMap((e) => expandRecurringEvent(e, rangeStart, rangeEnd))
+  }, [visibleEvents])
+
   return (
     <CalendarContext.Provider
       value={{
@@ -169,6 +223,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         setSelectedMemberIds,
         toggleMember,
         visibleEvents,
+        expandedVisibleEvents,
       }}
     >
       {children}

@@ -12,7 +12,7 @@ interface WeekViewProps {
 }
 
 export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
-  const { currentDate, visibleEvents, calendars, members } = useCalendar()
+  const { currentDate, expandedVisibleEvents, calendars, members } = useCalendar()
 
   const calMap = useMemo(
     () => Object.fromEntries(calendars.map((c) => [c.id, c])),
@@ -42,7 +42,7 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
   function getEventsForDayHour(date: Date, hour: number): CalendarEvent[] {
     const slotStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour).getTime()
     const slotEnd = slotStart + 3600000
-    return visibleEvents.filter((e) => {
+    return expandedVisibleEvents.filter((e) => {
       if (e.allDay) return false
       const eStart = new Date(e.start).getTime()
       const eEnd = new Date(e.end).getTime()
@@ -54,7 +54,7 @@ export function WeekView({ onEventClick, onSlotClick }: WeekViewProps) {
   function getAllDayEvents(date: Date): CalendarEvent[] {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
     const dayEnd = dayStart + 86400000
-    return visibleEvents.filter((e) => {
+    return expandedVisibleEvents.filter((e) => {
       if (!e.allDay) return false
       const eStart = new Date(e.start).getTime()
       const eEnd = new Date(e.end).getTime()

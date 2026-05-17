@@ -11,7 +11,7 @@ interface MonthViewProps {
 }
 
 export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
-  const { currentDate, visibleEvents, calendars, members } = useCalendar()
+  const { currentDate, expandedVisibleEvents, calendars, members } = useCalendar()
 
   const calMap = useMemo(
     () => Object.fromEntries(calendars.map((c) => [c.id, c])),
@@ -55,7 +55,7 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
   function getEventsForDay(date: Date): CalendarEvent[] {
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
     const dayEnd = dayStart + 86400000
-    return visibleEvents.filter((e) => {
+    return expandedVisibleEvents.filter((e) => {
       const eStart = new Date(e.start).getTime()
       const eEnd = new Date(e.end).getTime()
       return eStart < dayEnd && eEnd > dayStart

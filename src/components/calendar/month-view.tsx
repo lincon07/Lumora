@@ -1,17 +1,24 @@
-import { useMemo } from "react"
+import { useMemo, useState, useRef, useCallback } from "react"
 import { useCalendar } from "@/providers/calendar-provider"
 import { Avatar, AvatarImage, AvatarFallback, AvatarGroup } from "@/components/ui/avatar"
 import type { CalendarEvent } from "@/lib/calendar-types"
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+const LONG_PRESS_DURATION = 500 // ms
 
 interface MonthViewProps {
   onEventClick: (event: CalendarEvent) => void
   onDayClick: (date: Date) => void
+  onDayLongPress?: (date: Date) => void
 }
 
-export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
-  const { currentDate, expandedVisibleEvents, calendars, members } = useCalendar()
+export function MonthView({ onEventClick, onDayClick, onDayLongPress }: MonthViewProps) {
+  const { currentDate, expandedVisibleEvents, calendars, members, updateEvent, setCurrentDate, setView } = useCalendar()
+
+  const [draggedEvent, setDraggedEvent] = useState<CalendarEvent | null>(null)
+  const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null)
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+  const longPressTriggered = useRef(false)
 
   const calMap = useMemo(
     () => Object.fromEntries(calendars.map((c) => [c.id, c])),
@@ -31,16 +38,13 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
     const totalDays = last.getDate()
 
     const cells: Date[] = []
-    // Fill leading days from previous month
     for (let i = startDay - 1; i >= 0; i--) {
       const d = new Date(year, month, -i)
       cells.push(d)
     }
-    // Current month
     for (let i = 1; i <= totalDays; i++) {
       cells.push(new Date(year, month, i))
     }
-    // Fill trailing days
     while (cells.length % 7 !== 0) {
       cells.push(new Date(year, month + 1, cells.length - startDay - totalDays + 1))
     }
@@ -70,6 +74,83 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
 
   const isCurrentMonth = (d: Date) => d.getMonth() === currentDate.getMonth()
 
+  // Long press handlers
+  const handleTouchStart = useCallback((date: Date) => {
+    longPressTriggered.current = false
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
+      // Zoom into week view for that date
+      setCurrentDate(date)
+      setView("week")
+      if (onDayLongPress) onDayLongPress(date)
+    }, LONG_PRESS_DURATION)
+  }, [setCurrentDate, setView, onDayLongPress])
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  const handleTouchMove = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  // Drag and drop handlers
+  const handleDragStart = useCallback((e: React.DragEvent, event: CalendarEvent) => {
+    e.stopPropagation()
+    setDraggedEvent(event)
+    e.dataTransfer.effectAllowed = "move"
+    e.dataTransfer.setData("text/plain", event.id)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent, date: Date) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = "move"
+    setDropTargetDate(date)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDropTargetDate(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent, targetDate: Date) => {
+    e.preventDefault()
+    setDropTargetDate(null)
+
+    if (!draggedEvent) return
+
+    // Calculate the day difference
+    const origStart = new Date(draggedEvent.start)
+    const origEnd = new Date(draggedEvent.end)
+    const dayDiff = Math.floor((targetDate.getTime() - new Date(origStart.getFullYear(), origStart.getMonth(), origStart.getDate()).getTime()) / 86400000)
+
+    // Create new dates preserving time
+    const newStart = new Date(origStart)
+    newStart.setDate(newStart.getDate() + dayDiff)
+    const newEnd = new Date(origEnd)
+    newEnd.setDate(newEnd.getDate() + dayDiff)
+
+    // Extract base event ID (remove _occ_N suffix if present)
+    const baseId = draggedEvent.id.replace(/_occ_\d+$/, "")
+
+    updateEvent(baseId, {
+      start: newStart.toISOString(),
+      end: newEnd.toISOString(),
+    })
+
+    setDraggedEvent(null)
+  }, [draggedEvent, updateEvent])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedEvent(null)
+    setDropTargetDate(null)
+  }, [])
+
   const rowCount = weeks.length
 
   return (
@@ -86,7 +167,7 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
         ))}
       </div>
 
-      {/* Grid - use explicit row count for proper height distribution */}
+      {/* Grid */}
       <div
         className="grid flex-1 overflow-hidden"
         style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))` }}
@@ -97,13 +178,25 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
               const events = getEventsForDay(day)
               const maxShow = 2
               const overflow = events.length - maxShow
+              const isDropTarget = dropTargetDate?.getTime() === day.getTime()
+              
               return (
-                <button
+                <div
                   key={di}
-                  onClick={() => onDayClick(day)}
-                  className={`flex flex-col items-stretch gap-0.5 border-r border-border/20 p-1 text-left transition-colors hover:bg-muted/30 last:border-r-0 overflow-hidden ${
+                  onTouchStart={() => handleTouchStart(day)}
+                  onTouchEnd={handleTouchEnd}
+                  onTouchMove={handleTouchMove}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
+                  onClick={() => {
+                    if (!longPressTriggered.current) {
+                      onDayClick(day)
+                    }
+                  }}
+                  className={`flex flex-col items-stretch gap-0.5 border-r border-border/20 p-1 text-left transition-all last:border-r-0 overflow-hidden cursor-pointer select-none ${
                     !isCurrentMonth(day) ? "opacity-40" : ""
-                  }`}
+                  } ${isDropTarget ? "bg-primary/20 ring-2 ring-primary ring-inset" : "hover:bg-muted/30"}`}
                 >
                   <span
                     className={`mb-0.5 flex size-6 items-center justify-center self-end rounded-full text-xs font-medium ${
@@ -116,14 +209,20 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
                   </span>
                   {events.slice(0, maxShow).map((evt) => {
                     const cal = calMap[evt.calendarId]
+                    const isDragging = draggedEvent?.id === evt.id
                     return (
                       <div
                         key={evt.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, evt)}
+                        onDragEnd={handleDragEnd}
                         onClick={(e) => {
                           e.stopPropagation()
                           onEventClick(evt)
                         }}
-                        className="group/evt flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight transition-colors hover:brightness-90 cursor-pointer truncate"
+                        className={`group/evt flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-tight transition-all cursor-grab active:cursor-grabbing truncate ${
+                          isDragging ? "opacity-50 scale-95" : "hover:brightness-90"
+                        }`}
                         style={{ backgroundColor: (cal?.color ?? "#888") + "20", color: cal?.color ?? "#888" }}
                       >
                         <span
@@ -153,12 +252,19 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
                       +{overflow} more
                     </span>
                   )}
-                </button>
+                </div>
               )
             })}
           </div>
         ))}
       </div>
+
+      {/* Drag indicator overlay */}
+      {draggedEvent && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg px-3 py-2 shadow-lg text-sm text-muted-foreground pointer-events-none z-50">
+          Moving: <span className="text-foreground font-medium">{draggedEvent.title}</span>
+        </div>
+      )}
     </div>
   )
 }

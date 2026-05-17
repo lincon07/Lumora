@@ -69,6 +69,11 @@ interface CalendarStore {
   goNext: () => void
   goPrev: () => void
 
+  // Member CRUD
+  addMember: (member: FamilyMember) => void
+  updateMember: (id: string, patch: Partial<FamilyMember>) => void
+  deleteMember: (id: string) => void
+
   // Calendar CRUD
   addCalendar: (cal: CalendarGroup) => void
   updateCalendar: (id: string, patch: Partial<CalendarGroup>) => void
@@ -93,7 +98,7 @@ interface CalendarStore {
 const CalendarContext = createContext<CalendarStore | null>(null)
 
 export function CalendarProvider({ children }: { children: ReactNode }) {
-  const [members] = useState<FamilyMember[]>(defaultMembers)
+  const [members, setMembers] = useState<FamilyMember[]>(defaultMembers)
   const [calendars, setCalendars] = useState<CalendarGroup[]>(defaultCalendars)
   const [events, setEvents] = useState<CalendarEvent[]>(defaultEvents)
   const [view, setView] = useState<CalendarView>("month")
@@ -124,6 +129,42 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
       return d
     })
   }, [view])
+
+  // Member CRUD
+  const addMember = useCallback(
+    (member: FamilyMember) => {
+      setMembers((prev) => [...prev, member])
+      setSelectedMemberIds((prev) => [...prev, member.id])
+    },
+    []
+  )
+  const updateMember = useCallback(
+    (id: string, patch: Partial<FamilyMember>) =>
+      setMembers((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
+      ),
+    []
+  )
+  const deleteMember = useCallback(
+    (id: string) => {
+      setMembers((prev) => prev.filter((m) => m.id !== id))
+      setSelectedMemberIds((prev) => prev.filter((mid) => mid !== id))
+      // Remove member from all calendars and events
+      setCalendars((prev) =>
+        prev.map((c) => ({
+          ...c,
+          memberIds: c.memberIds.filter((mid) => mid !== id),
+        }))
+      )
+      setEvents((prev) =>
+        prev.map((e) => ({
+          ...e,
+          memberIds: e.memberIds.filter((mid) => mid !== id),
+        }))
+      )
+    },
+    []
+  )
 
   // Calendar CRUD
   const addCalendar = useCallback(
@@ -212,6 +253,9 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
         goToday,
         goNext,
         goPrev,
+        addMember,
+        updateMember,
+        deleteMember,
         addCalendar,
         updateCalendar,
         deleteCalendar,

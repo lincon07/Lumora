@@ -1,9 +1,11 @@
 import { useState } from "react"
 import { useTheme } from "@/providers/theme-provider"
+import { useBrightness } from "@/hooks/use-brightness"
 import { colorThemes } from "@/lib/color-themes"
 import type { ColorTheme } from "@/lib/color-themes"
 import { createBlankCustomTheme } from "@/lib/color-themes"
 import { ThemeEditor } from "@/components/settings/theme-editor"
+import { Slider } from "@/components/ui/slider"
 import { toast } from "sonner"
 import {
   Check,
@@ -14,6 +16,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Lightbulb,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -25,6 +28,7 @@ export default function SettingsPage() {
     allThemes,
     deleteCustomTheme,
   } = useTheme()
+  const { brightness, setBrightness } = useBrightness()
 
   const [editingTheme, setEditingTheme] = useState<ColorTheme | null>(null)
 
@@ -85,6 +89,30 @@ export default function SettingsPage() {
               {label}
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* Brightness Control */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <Lightbulb className="size-5 text-muted-foreground" />
+          <h3 className="text-sm font-medium text-foreground">Display Brightness</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Adjust your display brightness level
+        </p>
+        <div className="flex items-center gap-4">
+          <Slider
+            value={[brightness]}
+            onValueChange={(value) => setBrightness(value[0])}
+            min={0}
+            max={100}
+            step={1}
+            className="flex-1"
+          />
+          <span className="text-sm font-medium text-foreground min-w-12 text-right">
+            {brightness}%
+          </span>
         </div>
       </section>
 

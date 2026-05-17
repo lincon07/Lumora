@@ -5,6 +5,7 @@ import { colorThemes } from "@/lib/color-themes"
 import type { ColorTheme } from "@/lib/color-themes"
 import { createBlankCustomTheme } from "@/lib/color-themes"
 import { ThemeEditor } from "@/components/settings/theme-editor"
+import { CharacterEditor } from "@/components/character/character-editor"
 import { Slider } from "@/components/ui/slider"
 import { toast } from "sonner"
 import {
@@ -17,6 +18,7 @@ import {
   Pencil,
   Trash2,
   Lightbulb,
+  User,
 } from "lucide-react"
 
 export default function SettingsPage() {
@@ -245,6 +247,18 @@ export default function SettingsPage() {
           />
         </section>
       )}
+
+      {/* Character Playground Section */}
+      <section className="flex flex-col gap-4 border-t border-border pt-8">
+        <div className="flex items-center gap-3">
+          <User className="size-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">Character Playground</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Create and customize your own avatar character with different face shapes, hair styles, facial hair, and clothing options.
+        </p>
+        <CharacterEditor />
+      </section>
     </div>
   )
 }

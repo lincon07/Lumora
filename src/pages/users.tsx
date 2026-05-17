@@ -44,7 +44,6 @@ import {
   Palette,
   Smartphone,
   QrCode,
-  Link,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { FamilyMember } from "@/lib/calendar-types"
@@ -84,8 +83,9 @@ function UsersInner() {
     getPairingsForMember,
   } = useAuth()
 
-  const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
+  const [showEditSheet, setShowEditSheet] = useState(false)
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<FamilyMember | null>(null)
 
   // New member form state
@@ -129,26 +129,24 @@ function UsersInner() {
     setShowAddSheet(false)
   }
 
-  function startEditing(member: FamilyMember) {
-    setEditingId(member.id)
+  function openEditSheet(member: FamilyMember) {
+    setEditingMember(member)
     setEditName(member.name)
     setEditRole(member.role)
     setEditColor(member.color)
+    setShowEditSheet(true)
   }
 
-  function saveEditing() {
-    if (!editingId) return
-    updateMember(editingId, {
+  function handleSaveEdit() {
+    if (!editingMember) return
+    updateMember(editingMember.id, {
       name: editName,
       role: editRole,
       color: editColor,
     })
     toast.success("Member updated")
-    setEditingId(null)
-  }
-
-  function cancelEditing() {
-    setEditingId(null)
+    setShowEditSheet(false)
+    setEditingMember(null)
   }
 
   function confirmDelete(member: FamilyMember) {
@@ -250,7 +248,6 @@ function UsersInner() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pr-1">
               {roleMembers.map((member) => {
-                const isEditing = editingId === member.id
                 const isSwiped = swipedId === member.id
 
                 return (
@@ -286,104 +283,58 @@ function UsersInner() {
                         borderLeftWidth: "3px",
                       }}
                     >
-                      {isEditing ? (
-                        // Edit mode
-                        <div className="flex flex-col gap-3">
-                          <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            placeholder="Name"
-                            className="h-9"
-                            autoFocus
-                          />
-                          <Select value={editRole} onValueChange={setEditRole}>
-                            <SelectTrigger className="h-9">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ROLE_OPTIONS.map((r) => (
-                                <SelectItem key={r} value={r}>
-                                  {r}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="flex flex-wrap gap-1.5">
-                            {COLOR_PRESETS.map((c) => (
-                              <button
-                                key={c}
-                                onClick={() => setEditColor(c)}
-                                className={`size-6 rounded-full transition-all ${
-                                  editColor === c ? "ring-2 ring-white ring-offset-2 ring-offset-card" : ""
-                                }`}
-                                style={{ backgroundColor: c }}
-                              />
-                            ))}
-                          </div>
-                          <div className="flex gap-2 mt-1">
-                            <Button size="sm" variant="ghost" onClick={cancelEditing} className="flex-1">
-                              <X className="size-4 mr-1" /> Cancel
-                            </Button>
-                            <Button size="sm" onClick={saveEditing} className="flex-1">
-                              <Check className="size-4 mr-1" /> Save
-                            </Button>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-12 ring-2 ring-border/50 shrink-0">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback
+                            className="text-base font-semibold"
+                            style={{ backgroundColor: member.color + "30", color: member.color }}
+                          >
+                            {member.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {member.name}
+                          </p>
+                          {/* Linked phones indicator */}
+                          {(() => {
+                            const pairings = getPairingsForMember(member.id)
+                            if (pairings.length === 0) return null
+                            return (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <Smartphone className="size-3 text-green-500" />
+                                <span className="text-[10px] text-green-500">
+                                  {pairings.length} phone{pairings.length > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                            )
+                          })()}
                         </div>
-                      ) : (
-                        // View mode
-                        <div className="flex items-center gap-3">
-                          <Avatar className="size-12 ring-2 ring-border/50 shrink-0">
-                            <AvatarImage src={member.avatar} alt={member.name} />
-                            <AvatarFallback
-                              className="text-base font-semibold"
-                              style={{ backgroundColor: member.color + "30", color: member.color }}
-                            >
-                              {member.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {member.name}
-                            </p>
-                            {/* Linked phones indicator */}
-                            {(() => {
-                              const pairings = getPairingsForMember(member.id)
-                              if (pairings.length === 0) return null
-                              return (
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <Smartphone className="size-3 text-green-500" />
-                                  <span className="text-[10px] text-green-500">
-                                    {pairings.length} phone{pairings.length > 1 ? "s" : ""}
-                                  </span>
-                                </div>
-                              )
-                            })()}
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => openPairingForMember(member.id)}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                              title="Link phone"
-                            >
-                              <Smartphone className="size-4" />
-                            </button>
-                            <button
-                              onClick={() => startEditing(member)}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                              title="Edit"
-                            >
-                              <Pencil className="size-4" />
-                            </button>
-                            <button
-                              onClick={() => confirmDelete(member)}
-                              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => openPairingForMember(member.id)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="Link phone"
+                          >
+                            <Smartphone className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => openEditSheet(member)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(member)}
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -412,19 +363,19 @@ function UsersInner() {
 
       {/* Add Member Sheet */}
       <Sheet open={showAddSheet} onOpenChange={setShowAddSheet}>
-        <SheetContent side="right" className="w-96">
-          <SheetHeader>
+        <SheetContent side="right" className="w-96 p-6">
+          <SheetHeader className="mb-6">
             <SheetTitle>Add Family Member</SheetTitle>
             <SheetDescription>
-              Add a new member to your household. They will appear in calendars and can be assigned to events.
+              Add a new member to your household.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex flex-col gap-5 py-6">
+          <div className="flex flex-col gap-5">
             {/* Avatar preview */}
             <div className="flex justify-center">
               <div className="relative">
-                <Avatar className="size-24 ring-4 ring-border">
+                <Avatar className="size-20 ring-4 ring-border">
                   <AvatarFallback
                     className="text-2xl font-bold"
                     style={{ backgroundColor: newColor + "30", color: newColor }}
@@ -460,13 +411,13 @@ function UsersInner() {
                     <button
                       key={r}
                       onClick={() => setNewRole(r)}
-                      className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                      className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
                         isSelected
                           ? "border-primary bg-primary/10 text-primary"
                           : "border-border text-muted-foreground hover:border-muted-foreground/50"
                       }`}
                     >
-                      <Icon className="size-5" />
+                      <Icon className="size-4" />
                       <span className="text-[10px] font-medium">{r}</span>
                     </button>
                   )
@@ -485,7 +436,7 @@ function UsersInner() {
                   <button
                     key={c}
                     onClick={() => setNewColor(c)}
-                    className={`size-8 rounded-full transition-all hover:scale-110 ${
+                    className={`size-7 rounded-full transition-all hover:scale-110 ${
                       newColor === c ? "ring-2 ring-white ring-offset-2 ring-offset-card scale-110" : ""
                     }`}
                     style={{ backgroundColor: c }}
@@ -495,7 +446,7 @@ function UsersInner() {
             </div>
           </div>
 
-          <SheetFooter className="flex-col gap-2">
+          <SheetFooter className="flex-col gap-2 mt-6">
             <Button
               className="w-full"
               disabled={!newName.trim()}
@@ -505,8 +456,120 @@ function UsersInner() {
               Add {newName || "Member"}
             </Button>
             <p className="text-xs text-muted-foreground text-center">
-              You can link a phone to this member after adding them.
+              You can link a phone after adding.
             </p>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Member Sheet */}
+      <Sheet open={showEditSheet} onOpenChange={(open) => { if (!open) { setShowEditSheet(false); setEditingMember(null); } }}>
+        <SheetContent side="right" className="w-96 p-6">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Edit Member</SheetTitle>
+            <SheetDescription>
+              Update member details.
+            </SheetDescription>
+          </SheetHeader>
+
+          {editingMember && (
+            <div className="flex flex-col gap-5">
+              {/* Avatar preview */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <Avatar className="size-20 ring-4 ring-border">
+                    <AvatarImage src={editingMember.avatar} alt={editName} />
+                    <AvatarFallback
+                      className="text-2xl font-bold"
+                      style={{ backgroundColor: editColor + "30", color: editColor }}
+                    >
+                      {editName ? editName[0].toUpperCase() : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div
+                    className="absolute -bottom-1 -right-1 size-6 rounded-full ring-2 ring-card"
+                    style={{ backgroundColor: editColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Name */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  placeholder="Enter name"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
+              </div>
+
+              {/* Role */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium">Role</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {ROLE_OPTIONS.map((r) => {
+                    const Icon = ROLE_ICONS[r] || User
+                    const isSelected = editRole === r
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => setEditRole(r)}
+                        className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-muted-foreground/50"
+                        }`}
+                      >
+                        <Icon className="size-4" />
+                        <span className="text-[10px] font-medium">{r}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Color */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Palette className="size-4" />
+                  Personal Color
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {COLOR_PRESETS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setEditColor(c)}
+                      className={`size-7 rounded-full transition-all hover:scale-110 ${
+                        editColor === c ? "ring-2 ring-white ring-offset-2 ring-offset-card scale-110" : ""
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <SheetFooter className="flex-col gap-2 mt-6">
+            <Button
+              className="w-full"
+              disabled={!editName.trim()}
+              onClick={handleSaveEdit}
+            >
+              <Check className="size-4 mr-2" />
+              Save Changes
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => {
+                if (editingMember) confirmDelete(editingMember)
+                setShowEditSheet(false)
+              }}
+            >
+              <Trash2 className="size-4 mr-2" />
+              Delete Member
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -531,21 +594,21 @@ function UsersInner() {
 
       {/* Phone Pairing Sheet */}
       <Sheet open={showPairingSheet} onOpenChange={(open) => !open && closePairingSheet()}>
-        <SheetContent side="right" className="w-96">
-          <SheetHeader>
+        <SheetContent side="right" className="w-96 p-6">
+          <SheetHeader className="mb-4">
             <SheetTitle className="flex items-center gap-2">
               <QrCode className="size-5" />
               Link Phone
             </SheetTitle>
             <SheetDescription>
-              Generate a QR code for this family member to scan with their phone.
+              Generate a QR code for this member to scan.
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex flex-col gap-5 py-4">
+          <div className="flex flex-col gap-4">
             {/* Show selected member */}
             {pairingMemberId && (
-              <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
                 {(() => {
                   const member = members.find((m) => m.id === pairingMemberId)
                   if (!member) return null
@@ -568,9 +631,9 @@ function UsersInner() {
             )}
 
             {pendingPairing && pairingMemberId === pendingPairing.memberId ? (
-              <>
+              <div className="flex flex-col gap-4">
                 {/* QR Code display */}
-                <div className="flex justify-center rounded-2xl bg-white p-4">
+                <div className="flex justify-center rounded-2xl bg-white p-6">
                   <QRCodeSVG
                     value={JSON.stringify({
                       type: "lumora-pairing",
@@ -588,12 +651,12 @@ function UsersInner() {
                   <p className="mt-1 text-xs text-muted-foreground">Expires in 10 minutes</p>
                 </div>
 
-                <Button variant="outline" className="w-full" onClick={closePairingSheet}>
+                <Button variant="outline" className="w-full mt-2" onClick={closePairingSheet}>
                   <X className="size-4 mr-2" /> Done
                 </Button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex flex-col gap-4">
                 {/* Existing pairings for this member */}
                 {pairingMemberId && (() => {
                   const existingPairings = getPairingsForMember(pairingMemberId)
@@ -604,13 +667,13 @@ function UsersInner() {
                         <Smartphone className="size-4" />
                         Linked Phones ({existingPairings.length})
                       </label>
-                      <div className="flex flex-col gap-1.5 max-h-32 overflow-auto">
+                      <div className="flex flex-col gap-2 max-h-28 overflow-y-auto pr-1">
                         {existingPairings.map((pairing) => (
                           <div
                             key={pairing.id}
-                            className="flex items-center justify-between rounded-lg border border-border bg-card p-2"
+                            className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               <Smartphone className="size-4 text-green-500" />
                               <div>
                                 <p className="text-xs font-medium">{pairing.deviceName}</p>
@@ -640,42 +703,40 @@ function UsersInner() {
                 {/* Permissions selection */}
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-medium">Permissions for new phone</label>
-                  <div className="grid gap-1.5 max-h-40 overflow-auto">
+                  <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1 pb-2">
                     {ALL_PHONE_PERMISSIONS.map((perm) => (
                       <button
                         key={perm.value}
                         onClick={() => togglePermission(perm.value)}
-                        className={`flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition-all ${
+                        className={`flex items-center gap-3 rounded-xl border p-3 text-left text-sm transition-all w-full ${
                           selectedPermissions.includes(perm.value)
                             ? "border-primary bg-primary/5"
                             : "border-border bg-card hover:border-muted-foreground/50"
                         }`}
                       >
                         <div
-                          className={`flex size-4 items-center justify-center rounded border ${
+                          className={`flex size-5 items-center justify-center rounded-md border-2 shrink-0 ${
                             selectedPermissions.includes(perm.value)
                               ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border"
+                              : "border-muted-foreground/30"
                           }`}
                         >
-                          {selectedPermissions.includes(perm.value) && <Check className="size-2.5" />}
+                          {selectedPermissions.includes(perm.value) && <Check className="size-3" />}
                         </div>
-                        {perm.label}
+                        <span className="flex-1">{perm.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-              </>
+
+                <SheetFooter className="mt-2">
+                  <Button className="w-full gap-2" onClick={handleGenerateQR}>
+                    <QrCode className="size-4" /> Generate QR Code
+                  </Button>
+                </SheetFooter>
+              </div>
             )}
           </div>
-
-          {!(pendingPairing && pairingMemberId === pendingPairing.memberId) && (
-            <SheetFooter>
-              <Button className="w-full gap-2" onClick={handleGenerateQR}>
-                <QrCode className="size-4" /> Generate QR Code
-              </Button>
-            </SheetFooter>
-          )}
         </SheetContent>
       </Sheet>
     </div>

@@ -134,7 +134,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
     []
   )
 
-  // Visible events: filtered by visible calendars + selected members
+  // Visible events: filtered by visible calendars + selected members (or no members)
   const visibleCalendarIds = new Set(
     calendars.filter((c) => c.visible).map((c) => c.id)
   )
@@ -142,7 +142,7 @@ export function CalendarProvider({ children }: { children: ReactNode }) {
   const visibleEvents = events.filter(
     (e) =>
       visibleCalendarIds.has(e.calendarId) &&
-      e.memberIds.some((mid) => memberSet.has(mid))
+      (e.memberIds.length === 0 || e.memberIds.some((mid) => memberSet.has(mid)))
   )
 
   return (

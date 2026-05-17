@@ -70,10 +70,12 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
 
   const isCurrentMonth = (d: Date) => d.getMonth() === currentDate.getMonth()
 
+  const rowCount = weeks.length
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-7 border-b border-border/50">
+      <div className="grid grid-cols-7 border-b border-border/50 shrink-0">
         {DAYS.map((day) => (
           <div
             key={day}
@@ -84,19 +86,22 @@ export function MonthView({ onEventClick, onDayClick }: MonthViewProps) {
         ))}
       </div>
 
-      {/* Grid */}
-      <div className="grid flex-1 grid-rows-[repeat(auto-fill,minmax(0,1fr))]">
+      {/* Grid - use explicit row count for proper height distribution */}
+      <div
+        className="grid flex-1 overflow-hidden"
+        style={{ gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))` }}
+      >
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 border-b border-border/30 last:border-b-0">
+          <div key={wi} className="grid grid-cols-7 border-b border-border/30 last:border-b-0 min-h-0">
             {week.map((day, di) => {
               const events = getEventsForDay(day)
-              const maxShow = 3
+              const maxShow = 2
               const overflow = events.length - maxShow
               return (
                 <button
                   key={di}
                   onClick={() => onDayClick(day)}
-                  className={`flex flex-col items-stretch gap-0.5 border-r border-border/20 p-1 text-left transition-colors hover:bg-muted/30 last:border-r-0 min-h-[5.5rem] ${
+                  className={`flex flex-col items-stretch gap-0.5 border-r border-border/20 p-1 text-left transition-colors hover:bg-muted/30 last:border-r-0 overflow-hidden ${
                     !isCurrentMonth(day) ? "opacity-40" : ""
                   }`}
                 >

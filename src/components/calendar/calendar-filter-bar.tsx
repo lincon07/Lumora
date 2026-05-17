@@ -11,8 +11,9 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet"
-import { Eye, EyeOff, Plus, X, ChevronDown, ChevronUp, Upload, FileDown, Link, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react"
+import { Eye, EyeOff, Plus, X, ChevronDown, ChevronUp, Upload, FileDown, Link, CheckCircle2, AlertCircle, ExternalLink, Pencil, Trash2, Check } from "lucide-react"
 import { toast } from "sonner"
+import type { CalendarGroup } from "@/lib/calendar-types"
 
 export function CalendarFilterBar() {
   const {
@@ -22,6 +23,7 @@ export function CalendarFilterBar() {
     toggleMember,
     toggleCalendarVisibility,
     addCalendar,
+    updateCalendar,
     deleteCalendar,
     addEvent,
   } = useCalendar()
@@ -37,6 +39,12 @@ export function CalendarFilterBar() {
   const [googleClientId, setGoogleClientId] = useState("")
   const [googleClientSecret, setGoogleClientSecret] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Edit calendar state
+  const [editingCalendar, setEditingCalendar] = useState<CalendarGroup | null>(null)
+  const [editCalName, setEditCalName] = useState("")
+  const [editCalColor, setEditCalColor] = useState("")
+  const [editCalMembers, setEditCalMembers] = useState<string[]>([])
 
   function handleCreateCalendar() {
     if (!newCalName.trim()) return
@@ -58,6 +66,38 @@ export function CalendarFilterBar() {
     setNewCalMembers((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     )
+  }
+
+  // Edit calendar functions
+  function openEditCalendar(cal: CalendarGroup) {
+    setEditingCalendar(cal)
+    setEditCalName(cal.name)
+    setEditCalColor(cal.color)
+    setEditCalMembers(cal.memberIds)
+  }
+
+  function toggleEditCalMember(id: string) {
+    setEditCalMembers((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  function handleUpdateCalendar() {
+    if (!editingCalendar || !editCalName.trim()) return
+    updateCalendar(editingCalendar.id, {
+      name: editCalName.trim(),
+      color: editCalColor,
+      memberIds: editCalMembers,
+    })
+    toast.success(`Calendar "${editCalName.trim()}" updated`)
+    setEditingCalendar(null)
+  }
+
+  function handleDeleteCalendar() {
+    if (!editingCalendar) return
+    deleteCalendar(editingCalendar.id)
+    toast.success(`Calendar "${editingCalendar.name}" deleted`)
+    setEditingCalendar(null)
   }
 
   // Parse ICS file (Google Calendar, Outlook, Apple Calendar export format)
@@ -194,14 +234,11 @@ export function CalendarFilterBar() {
                   <span className={cal.visible ? "" : "line-through"}>{cal.name}</span>
                 </button>
                 <button
-                  onClick={() => {
-                    deleteCalendar(cal.id)
-                    toast.success(`"${cal.name}" deleted`)
-                  }}
-                  className="ml-0.5 opacity-0 group-hover/cal:opacity-100 transition-opacity rounded-full hover:bg-white/20"
-                  aria-label={`Delete ${cal.name}`}
+                  onClick={() => openEditCalendar(cal)}
+                  className="ml-0.5 opacity-0 group-hover/cal:opacity-100 transition-opacity rounded-full hover:bg-white/20 p-0.5"
+                  aria-label={`Edit ${cal.name}`}
                 >
-                  <X className="size-3" />
+                  <Pencil className="size-2.5" />
                 </button>
               </div>
             ))}
@@ -502,6 +539,77 @@ export function CalendarFilterBar() {
               </ul>
             </div>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Calendar Sheet */}
+      <Sheet open={!!editingCalendar} onOpenChange={(open) => !open && setEditingCalendar(null)}>
+        <SheetContent side="right" className="w-80">
+          <SheetHeader>
+            <SheetTitle>Edit Calendar</SheetTitle>
+            <SheetDescription>Update calendar settings and members</SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-4 px-4 py-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Name</label>
+              <Input
+                placeholder="Calendar name"
+                value={editCalName}
+                onChange={(e) => setEditCalName(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Color</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={editCalColor}
+                  onChange={(e) => setEditCalColor(e.target.value)}
+                  className="size-10 cursor-pointer rounded-lg border border-border bg-transparent p-1"
+                />
+                <div
+                  className="h-8 flex-1 rounded-lg"
+                  style={{ backgroundColor: editCalColor }}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Assigned Members</label>
+              <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                {members.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => toggleEditCalMember(m.id)}
+                    className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-xs transition-colors ${
+                      editCalMembers.includes(m.id)
+                        ? "bg-primary/15 text-foreground"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {editCalMembers.includes(m.id) && <Check className="size-3" />}
+                    <Avatar size="sm" className="size-4">
+                      <AvatarImage src={m.avatar} alt={m.name} />
+                      <AvatarFallback className="text-[8px]">{m.name[0]}</AvatarFallback>
+                    </Avatar>
+                    {m.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <SheetFooter className="flex-col gap-2">
+            <Button onClick={handleUpdateCalendar} disabled={!editCalName.trim()} className="w-full">
+              Save Changes
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={handleDeleteCalendar}
+            >
+              <Trash2 className="size-4 mr-2" />
+              Delete Calendar
+            </Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </>

@@ -1,79 +1,49 @@
-import { Card, CardContent } from "@/components/ui/card"
 import {
   Users,
   SquareCheckBig,
   UtensilsCrossed,
   CalendarDays,
-  TrendingUp,
-  TrendingDown,
 } from "lucide-react"
 
 const stats = [
   {
-    title: "Family Members",
+    title: "Members",
     value: "6",
-    change: "+1 this month",
-    trend: "up" as const,
     icon: Users,
-    color: "text-chart-1",
-    bgColor: "bg-chart-1/10",
+    color: "bg-blue-500/15 text-blue-400",
   },
   {
-    title: "Active Tasks",
+    title: "Tasks",
     value: "12",
-    change: "3 due today",
-    trend: "up" as const,
     icon: SquareCheckBig,
-    color: "text-chart-2",
-    bgColor: "bg-chart-2/10",
+    color: "bg-amber-500/15 text-amber-400",
   },
   {
-    title: "Meals Planned",
+    title: "Meals",
     value: "21",
-    change: "Full week",
-    trend: "up" as const,
     icon: UtensilsCrossed,
-    color: "text-chart-3",
-    bgColor: "bg-chart-3/10",
+    color: "bg-emerald-500/15 text-emerald-400",
   },
   {
-    title: "Events This Week",
+    title: "Events",
     value: "8",
-    change: "-2 from last week",
-    trend: "down" as const,
     icon: CalendarDays,
-    color: "text-chart-5",
-    bgColor: "bg-chart-5/10",
+    color: "bg-violet-500/15 text-violet-400",
   },
 ]
 
 export function StatsGrid() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="flex flex-wrap gap-2">
       {stats.map((stat) => (
-        <Card key={stat.title} className="border-border/50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div
-                className={`flex size-12 items-center justify-center rounded-xl ${stat.bgColor}`}
-              >
-                <stat.icon className={`size-6 ${stat.color}`} />
-              </div>
-              {stat.trend === "up" ? (
-                <TrendingUp className="size-4 text-chart-4" />
-              ) : (
-                <TrendingDown className="size-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="mt-4">
-              <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-sm font-medium text-muted-foreground mt-0.5">
-                {stat.title}
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">{stat.change}</p>
-          </CardContent>
-        </Card>
+        <div
+          key={stat.title}
+          className={`flex items-center gap-2 rounded-full px-3 py-1.5 ${stat.color}`}
+        >
+          <stat.icon className="size-4" />
+          <span className="text-sm font-semibold">{stat.value}</span>
+          <span className="text-xs opacity-80">{stat.title}</span>
+        </div>
       ))}
     </div>
   )

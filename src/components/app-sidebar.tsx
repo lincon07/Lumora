@@ -33,7 +33,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="none"
-      className="!w-16 border-r border-border/50"
+      className="!w-16 !h-full border-r border-border/50"
     >
       {/* Header - Logo */}
       <SidebarHeader className="flex items-center justify-center border-b border-border/50 py-4">

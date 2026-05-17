@@ -248,7 +248,7 @@ function UsersInner() {
               <span className="text-xs text-muted-foreground">({roleMembers.length})</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pr-1">
               {roleMembers.map((member) => {
                 const isEditing = editingId === member.id
                 const isSwiped = swipedId === member.id
@@ -278,7 +278,7 @@ function UsersInner() {
 
                     {/* Main card */}
                     <div
-                      className={`relative bg-card border border-border/50 rounded-xl p-4 transition-transform ${
+                      className={`relative bg-card border border-border/50 rounded-xl p-3 transition-transform ${
                         isSwiped ? "-translate-x-20" : "translate-x-0"
                       }`}
                       style={{
@@ -332,61 +332,52 @@ function UsersInner() {
                       ) : (
                         // View mode
                         <div className="flex items-center gap-3">
-                          <Avatar className="size-14 ring-2 ring-border/50">
+                          <Avatar className="size-12 ring-2 ring-border/50 shrink-0">
                             <AvatarImage src={member.avatar} alt={member.name} />
                             <AvatarFallback
-                              className="text-lg font-semibold"
+                              className="text-base font-semibold"
                               style={{ backgroundColor: member.color + "30", color: member.color }}
                             >
                               {member.name[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
-                            <p className="text-base font-semibold text-foreground truncate">
+                            <p className="text-sm font-semibold text-foreground truncate">
                               {member.name}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${ROLE_COLORS[member.role]}`}
-                              >
-                                {member.role}
-                              </span>
-                              <span
-                                className="size-3 rounded-full ring-1 ring-white/20"
-                                style={{ backgroundColor: member.color }}
-                              />
-                            </div>
                             {/* Linked phones indicator */}
                             {(() => {
                               const pairings = getPairingsForMember(member.id)
                               if (pairings.length === 0) return null
                               return (
-                                <div className="flex items-center gap-1 mt-1">
+                                <div className="flex items-center gap-1 mt-0.5">
                                   <Smartphone className="size-3 text-green-500" />
                                   <span className="text-[10px] text-green-500">
-                                    {pairings.length} phone{pairings.length > 1 ? "s" : ""} linked
+                                    {pairings.length} phone{pairings.length > 1 ? "s" : ""}
                                   </span>
                                 </div>
                               )
                             })()}
                           </div>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => openPairingForMember(member.id)}
-                              className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                               title="Link phone"
                             >
                               <Smartphone className="size-4" />
                             </button>
                             <button
                               onClick={() => startEditing(member)}
-                              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                              title="Edit"
                             >
                               <Pencil className="size-4" />
                             </button>
                             <button
                               onClick={() => confirmDelete(member)}
-                              className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Delete"
                             >
                               <Trash2 className="size-4" />
                             </button>

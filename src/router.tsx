@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom"
+import { RootLayout } from "@/components/layout/root-layout"
 import { AppLayout } from "@/components/layout/app-layout"
 import DashboardPage from "@/pages/dashboard"
 import CalendarPage from "@/pages/calendar"
@@ -10,35 +11,40 @@ import SettingsPage from "@/pages/settings"
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <AppLayout />,
+    element: <RootLayout />,
     children: [
       {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: "dashboard",
-        element: <DashboardPage />,
-      },
-      {
-        path: "calendar",
-        element: <CalendarPage />,
-      },
-      {
-        path: "users",
-        element: <UsersPage />,
-      },
-      {
-        path: "todos",
-        element: <TodosPage />,
-      },
-      {
-        path: "meal-planning",
-        element: <MealPlanningPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsPage />,
+        element: <AppLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
+            path: "dashboard",
+            element: <DashboardPage />,
+          },
+          {
+            path: "calendar",
+            element: <CalendarPage />,
+          },
+          {
+            path: "users",
+            element: <UsersPage />,
+          },
+          {
+            path: "todos",
+            element: <TodosPage />,
+          },
+          {
+            path: "meal-planning",
+            element: <MealPlanningPage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsPage />,
+          },
+        ],
       },
     ],
   },
